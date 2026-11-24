@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مدير التحكم بتطبيق تسوق ليمونة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Auth Gate Screen -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand-logos">
+        <div class="logo-box white-bg">
+          <img src="./assets/logo_lemona.png" alt="شعار ليمونة" />
+        </div>
+        <div class="logo-box dark-bg">
+          <img src="./assets/logo_fast_white.png" alt="شركة فاست أند وايت" />
+        </div>
+      </div>
+      <h1>مدير التحكم بتطبيق تسوق ليمونة</h1>
+      <p class="muted">بوابة الإدارة السحابية المستقلة — محمية بتسجيل دخول المدير فقط</p>
+
+      <form id="email-login-form" class="form-stack">
+        <div class="field">
+          <label for="login-email">البريد الإلكتروني للمدير</label>
+          <input id="login-email" type="email" required placeholder="admin@example.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="login-password">كلمة المرور</label>
+          <input id="login-password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-green full-width">تسجيل الدخول بالبريد وكلمة المرور</button>
+      </form>
+
+      <div class="divider"><span>أو</span></div>
+
+      <button id="google-login-btn" type="button" class="btn btn-yellow full-width">
+        تسجيل الدخول بحساب جوجل المعتمد
+      </button>
+
+      <div id="auth-error" class="alert alert-error hidden"></div>
+      <p class="hint">
+        ملاحظة: لتفعيل الدخول بالبريد وكلمة المرور لأول مرة، فعّل مزود <strong>Email/Password</strong> في وحدة تحكم Firebase Authentication وأنشئ حساب المدير، أو سجل الدخول مباشرة بحساب جوجل المعتمد (<code>akrmshaker8@gmail.com</code>).
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Admin Dashboard -->
+  <div id="dashboard-screen" class="dashboard hidden">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="./assets/logo_lemona.png" alt="ليمونة" class="topbar-logo" />
+        <div>
+          <h2>مدير التحكم بتطبيق تسوق ليمونة</h2>
+          <span id="admin-email-badge" class="muted small"></span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="enable-sound-btn" type="button" class="btn btn-outline btn-sm">تفعيل تنبيه الصوت</button>
+        <button id="seed-data-btn" type="button" class="btn btn-yellow btn-sm">تهيئة البيانات الافتراضية</button>
+        <button id="logout-btn" type="button" class="btn btn-danger btn-sm">تسجيل الخروج</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <nav class="nav-list">
+          <button class="nav-item active" data-section="orders">
+            <span>الطلبات والإشعارات</span>
+            <span id="pending-orders-badge" class="badge">0</span>
+          </button>
+          <button class="nav-item" data-section="products">
+            <span>إدارة المنتجات</span>
+          </button>
+          <button class="nav-item" data-section="offers">
+            <span>العروض الخاصة</span>
+          </button>
+          <button class="nav-item" data-section="settings">
+            <span>أرقام التواصل والمحافظ</span>
+          </button>
+          <button class="nav-item" data-section="account">
+            <span>إعدادات حساب المدير</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <!-- Toast / Live Notification Banner -->
+        <div id="live-toast" class="toast hidden"></div>
+
+        <!-- Section 1: Orders & Notifications -->
+        <section id="section-orders" class="panel active">
+          <div class="section-header">
+            <div>
+              <h3>استقبال الطلبات والإشعارات اللحظية</h3>
+              <p class="muted">تصل الطلبات من تطبيق الأندرويد فور إرسالها</p>
+            </div>
+            <div class="filter-pills">
+              <button class="pill active" data-order-filter="all">الكل</button>
+              <button class="pill" data-order-filter="pending">قيد الانتظار</button>
+              <button class="pill" data-order-filter="delivered">تم التوصيل</button>
+            </div>
+          </div>
+          <div id="orders-list" class="cards-grid"></div>
+        </section>
+
+        <!-- Section 2: Products Management -->
+        <section id="section-products" class="panel">
+          <div class="section-header">
+            <div>
+              <h3>إدارة منتجات ليمونة</h3>
+              <p class="muted">تظهر التعديلات والأسعار والصور مباشرة في تطبيق العملاء</p>
+            </div>
+          </div>
+
+          <div class="card form-card">
+            <h4 id="product-form-title">إضافة منتج جديد</h4>
+            <form id="product-form" class="form-grid">
+              <input type="hidden" id="product-id" />
+              <div class="field">
+                <label for="product-name">اسم المنتج</label>
+                <input id="product-name" type="text" required placeholder="مثال: ليمونة سائل غسيل الصحون" />
+              </div>
+              <div class="field">
+                <label for="product-category">التصنيف</label>
+                <input id="product-category" type="text" required list="category-suggestions" placeholder="سائل صحون" />
+                <datalist id="category-suggestions">
+                  <option value="سائل صحون"></option>
+                  <option value="منظفات أرضيات"></option>
+                  <option value="معقمات ومطهرات"></option>
+                  <option value="مساحيق غسيل"></option>
+                </datalist>
+              </div>
+              <div class="field">
+                <label for="product-price">السعر (ريال يمني)</label>
+                <input id="product-price" type="number" min="1" required placeholder="1200" />
+              </div>
+              <div class="field">
+                <label for="product-sort">ترتيب العرض</label>
+                <input id="product-sort" type="number" min="0" value="1" />
+              </div>
+              <div class="field full-span">
+                <label for="product-desc">الوصف المختصر</label>
+                <textarea id="product-desc" rows="2" placeholder="عبوة 1 لتر - يزيل الدهون بقوة"></textarea>
+              </div>
+              <div class="field full-span">
+                <label for="product-image-file">صورة المنتج من الاستوديو (أو رابط صورة)</label>
+                <div class="upload-row">
+                  <input id="product-image-file" type="file" accept="image/*" />
+                  <input id="product-image-url" type="text" placeholder="أو الصق رابط الصورة هنا" />
+                  <button type="button" id="clear-product-img" class="btn btn-outline btn-sm">إزالة الصورة</button>
+                </div>
+                <img id="product-image-preview" class="img-preview hidden" alt="معاينة المنتج" />
+              </div>
+              <div class="field checkbox-field">
+                <label>
+                  <input id="product-available" type="checkbox" checked />
+                  متاح للطلب في التطبيق
+                </label>
+              </div>
+              <div class="form-actions full-span">
+                <button type="submit" class="btn btn-green">حفظ المنتج</button>
+                <button type="button" id="cancel-product-edit" class="btn btn-outline hidden">إلغاء التعديل</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="products-list" class="cards-grid"></div>
+        </section>
+
+        <!-- Section 3: Special Offers -->
+        <section id="section-offers" class="panel">
+          <div class="section-header">
+            <div>
+              <h3>إدارة العروض الخاصة</h3>
+              <p class="muted">أضف عروضاً ترويجية بالصور والأسعار بالريال اليمني</p>
+            </div>
+          </div>
+
+          <div class="card form-card">
+            <h4 id="offer-form-title">إضافة عرض خاص جديد</h4>
+            <form id="offer-form" class="form-grid">
+              <input type="hidden" id="offer-id" />
+              <div class="field">
+                <label for="offer-title">عنوان العرض</label>
+                <input id="offer-title" type="text" required placeholder="مثال: باقة التوفير العائلية" />
+              </div>
+              <div class="field">
+                <label for="offer-badge">شارة العرض (اختياري)</label>
+                <input id="offer-badge" type="text" placeholder="خصم 20%" />
+              </div>
+              <div class="field">
+                <label for="offer-price">سعر العرض (ريال يمني)</label>
+                <input id="offer-price" type="number" min="1" required placeholder="2500" />
+              </div>
+              <div class="field">
+                <label for="offer-original-price">السعر قبل الخصم (اختياري)</label>
+                <input id="offer-original-price" type="number" min="0" placeholder="3200" />
+              </div>
+              <div class="field full-span">
+                <label for="offer-desc">تفاصيل العرض</label>
+                <textarea id="offer-desc" rows="2" placeholder="عبوتين سائل صحون + مطهر 500 مل"></textarea>
+              </div>
+              <div class="field full-span">
+                <label for="offer-image-file">صورة العرض من الاستوديو</label>
+                <div class="upload-row">
+                  <input id="offer-image-file" type="file" accept="image/*" />
+                  <input id="offer-image-url" type="text" placeholder="أو رابط صورة" />
+                  <button type="button" id="clear-offer-img" class="btn btn-outline btn-sm">إزالة الصورة</button>
+                </div>
+                <img id="offer-image-preview" class="img-preview hidden" alt="معاينة العرض" />
+              </div>
+              <div class="field checkbox-field">
+                <label>
+                  <input id="offer-active" type="checkbox" checked />
+                  عرض نشط في التطبيق
+                </label>
+              </div>
+              <div class="form-actions full-span">
+                <button type="submit" class="btn btn-green">حفظ العرض</button>
+                <button type="button" id="cancel-offer-edit" class="btn btn-outline hidden">إلغاء التعديل</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="offers-list" class="cards-grid"></div>
+        </section>
+
+        <!-- Section 4: Contact Numbers, Logos & Wallets -->
+        <section id="section-settings" class="panel">
+          <div class="section-header">
+            <div>
+              <h3>أرقام التواصل والشعارات والمحافظ الإلكترونية</h3>
+              <p class="muted">تُحدّث أرقام الواتساب والاتصال وحسابات الدفع مباشرة في التطبيق</p>
+            </div>
+          </div>
+
+          <div class="card form-card">
+            <form id="settings-form" class="form-grid">
+              <div class="field">
+                <label for="setting-store-name">اسم المتجر في الترويسة</label>
+                <input id="setting-store-name" type="text" required value="منتجات ليمونة" />
+              </div>
+              <div class="field">
+                <label for="setting-company-name">اسم الشركة المصنعة</label>
+                <input id="setting-company-name" type="text" required value="شركة فاست اند وايت لصناعة المنظفات" />
+              </div>
+              <div class="field">
+                <label for="setting-whatsapp">رقم الواتساب (بالصيغة الدولية مثل 967770000000)</label>
+                <input id="setting-whatsapp" type="text" required placeholder="967770000000" />
+              </div>
+              <div class="field">
+                <label for="setting-phone">رقم الاتصال الهاتفي المباشر</label>
+                <input id="setting-phone" type="text" required placeholder="770000000" />
+              </div>
+
+              <div class="field">
+                <label for="setting-lemona-logo-file">شعار ليمونة (اختياري لتغيير الشعار الافتراضي)</label>
+                <input id="setting-lemona-logo-file" type="file" accept="image/*" />
+                <input id="setting-lemona-logo-url" type="hidden" />
+                <button type="button" id="reset-lemona-logo" class="btn btn-outline btn-sm">استعادة الشعار الافتراضي</button>
+              </div>
+
+              <div class="field">
+                <label for="setting-company-logo-file">شعار شركة فاست أند وايت (اختياري)</label>
+                <input id="setting-company-logo-file" type="file" accept="image/*" />
+                <input id="setting-company-logo-url" type="hidden" />
+                <button type="button" id="reset-company-logo" class="btn btn-outline btn-sm">استعادة الشعار الافتراضي</button>
+              </div>
+
+              <div class="field full-span">
+                <div class="wallets-header">
+                  <label>حسابات المحافظ الإلكترونية (جيب، جوالي، الكريمي، إلخ)</label>
+                  <button type="button" id="add-wallet-btn" class="btn btn-yellow btn-sm">+ إضافة محفظة</button>
+                </div>
+                <div id="wallets-container" class="wallets-list"></div>
+              </div>
+
+              <div class="form-actions full-span">
+                <button type="submit" class="btn btn-green">حفظ جميع الإعدادات</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Section 5: Admin Account Settings -->
+        <section id="section-account" class="panel">
+          <div class="section-header">
+            <div>
+              <h3>إعدادات حساب المدير</h3>
+              <p class="muted">تغيير البريد الإلكتروني وكلمة المرور وإدارة صلاحيات المدير</p>
+            </div>
+          </div>
+
+          <div class="cards-two-col">
+            <div class="card form-card">
+              <h4>تحديث البريد الإلكتروني أو كلمة المرور</h4>
+              <form id="account-update-form" class="form-stack">
+                <div class="field">
+                  <label for="current-password">كلمة المرور الحالية (مطلوبة للتأكيد عند الدخول بالبريد)</label>
+                  <input id="current-password" type="password" placeholder="••••••••" />
+                </div>
+                <div class="field">
+                  <label for="new-admin-email">البريد الإلكتروني الجديد (اختياري)</label>
+                  <input id="new-admin-email" type="email" placeholder="new-admin@example.com" />
+                </div>
+                <div class="field">
+                  <label for="new-admin-password">كلمة المرور الجديدة (اختياري - 6 أحرف على الأقل)</label>
+                  <input id="new-admin-password" type="password" minlength="6" placeholder="••••••••" />
+                </div>
+                <button type="submit" class="btn btn-yellow">تحديث بيانات الدخول</button>
+              </form>
+              <div id="account-msg" class="alert hidden"></div>
+            </div>
+
+            <div class="card form-card">
+              <h4>تخويل معرف مدير إضافي (UID)</h4>
+              <p class="muted small">عند إنشاء حساب بريد وكلمة مرور جديد للمدير في Firebase Authentication، أدخل معرف UID هنا لمنحه صلاحية الإدارة في قاعدة البيانات.</p>
+              <form id="add-admin-uid-form" class="form-stack">
+                <div class="field">
+                  <label for="extra-admin-uid">معرف المستخدم (Firebase UID)</label>
+                  <input id="extra-admin-uid" type="text" required placeholder="مثال: xYz123Abc..." />
+                </div>
+                <div class="field">
+                  <label for="extra-admin-email">البريد الإلكتروني للمدير</label>
+                  <input id="extra-admin-email" type="email" required placeholder="manager@example.com" />
+                </div>
+                <div class="field">
+                  <label for="extra-admin-name">الاسم</label>
+                  <input id="extra-admin-name" type="text" placeholder="المدير" />
+                </div>
+                <button type="submit" class="btn btn-green">إضافة مدير مصرح</button>
+              </form>
+              <div id="admins-list" class="admins-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
